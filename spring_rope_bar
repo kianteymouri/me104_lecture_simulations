@@ -1,0 +1,92 @@
+% ME 104: Rigid Bar with Spring and Pulley (High-FPS Optimized)
+clear; clc; close all;
+
+%% 1. Parameters & Constants
+m = 2.0;            % Mass (kg)
+R = 1.5;            % Length of rigid bar (m)
+k = 50;             % Spring constant (N/m)
+l0 = 0.5;           % Spring neutral length (m)
+T = 15;             % Constant Rope Tension (N)
+
+% Fixed positions
+r0 = [-1.0; 1.0];   % Spring attachment point (Fixed)
+r1 = [2.0; 2.0];    % Pulley location (Fixed)
+
+% Simulation Timing
+target_fps = 60;                    % Target 60 Frames Per Second
+t_final = 10;                        % Total duration in seconds
+tspan = 0:(1/target_fps):t_final;    % Dense time vector for smoothness
+
+% Angles
+theta_i = deg2rad(10);  % Starts stationary at theta_i
+theta_f = deg2rad(180);  % Final target angle
+
+%% 2. Dynamics Solver
+% State vector: [theta; theta_dot]
+ode_fun = @(t, state) dynamics_fun(t, state, m, R, k, l0, T, r0, r1);
+[t, sol] = ode45(ode_fun, tspan, [theta_i; 0]);
+
+% Extract and Pre-convert to Cartesian to maximize loop speed
+theta_vals = sol(:,1);
+X_mass = R * cos(theta_vals);
+Y_mass = R * sin(theta_vals);
+
+%% 3. Visual Setup
+figure('Color', 'w', 'DoubleBuffer', 'on');
+hold on; axis equal; grid on;
+axis([-2 3 -1 3]);
+xlabel('x (m)'); ylabel('y (m)');
+title(sprintf('High-FPS Simulation (Target: %d Hz)', target_fps));
+
+% Static Elements
+plot(0, 0, 'ko', 'MarkerFaceColor', 'k');   % Pivot O
+plot(r0(1), r0(2), 'k^', 'MarkerSize', 10); % Spring Anchor
+plot(r1(1), r1(2), 'ko', 'MarkerSize', 12); % Pulley
+
+% Initialize Dynamic Handles
+hBar = line([0 0], [0 0], 'Color', 'k', 'LineWidth', 4);
+hSpring = line([0 0], [0 0], 'Color', [0.5 0.5 0.5], 'LineStyle', '--');
+hRope = line([0 0], [0 0], 'Color', 'b', 'LineWidth', 1.5);
+hMass = plot(0, 0, 'ro', 'MarkerFaceColor', 'r', 'MarkerSize', 12);
+
+%% 4. Smooth Animation Loop
+for i = 1:length(t)
+    % Update existing handles (No new plot objects created)
+    set(hBar, 'XData', [0 X_mass(i)], 'YData', [0 Y_mass(i)]);
+    set(hMass, 'XData', X_mass(i), 'YData', Y_mass(i));
+    set(hSpring, 'XData', [r0(1) X_mass(i)], 'YData', [r0(2) Y_mass(i)]);
+    set(hRope, 'XData', [X_mass(i) r1(1) r1(1)+0.5], ...
+               'YData', [Y_mass(i) r1(2) r1(2)-0.5]);
+    
+    % Break if we pass the final angle
+    if theta_vals(i) >= theta_f
+        break;
+    end
+    
+    drawnow; % Direct refresh for maximum smoothness
+end
+
+%% 5. Dynamics Function (Torque Balance)
+function dstate = dynamics_fun(~, state, m, R, k, l0, T, r0, r1)
+    th = state(1);
+    dth = state(2);
+    
+    % Position vector of the mass: r = R*er
+    r_vec = [R*cos(th); R*sin(th)];
+    et = [-sin(th); cos(th)]; % Tangential unit vector
+    
+    % Spring Force: Fs = -k(|l|-l0) * l_unit
+    l_vec = r_vec - r0;
+    Fs = -k * (norm(l_vec) - l0) * (l_vec / norm(l_vec));
+    
+    % Tension Force: Pulls toward pulley r1
+    rope_vec = r1 - r_vec;
+    FT = T * (rope_vec / norm(rope_vec));
+    
+    % Torque about pivot O: sum(Torque) = I * alpha
+    % Only tangential components contribute
+    torque = dot(Fs, et)*R + dot(FT, et)*R;
+    alpha = torque / (m * R^2); % I = m*R^2 for a point mass
+    
+    dstate = [dth; alpha];
+end
