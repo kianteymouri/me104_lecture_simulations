@@ -1,4 +1,6 @@
-% ME 104: Three-Body Problem Simulation
+%Lecture 18
+
+%three body sim courtesy of dr.kamrin
 clear all
 close all
 clc
@@ -100,9 +102,7 @@ for i = 1:length(t)
     hold off
 end
 
-%% ====================================================================
-%% Physics Engine Function (F = m*a Derivative Calculations)
-%% ====================================================================
+%% derivative calculations
 function Udot = threebody(~, U)
     global m1 m2 m3 G
 
