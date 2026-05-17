@@ -1,74 +1,70 @@
+%%Lecture 24
+
 function newtons_cradle_simulation()
-    % ME 104: Newton's Cradle Discrete Collision Simulation
-    % Based on Lec 24 binary impact sequence (e = 1, identical masses) [cite: 105, 112]
     clear all; close all; clc;
 
-    %% --- Configuration Zone ---
-    % Choose your lecture experiment scenario:
-    Scenario = 1; % Case A: 1 ball approaching 4 stationary balls [cite: 106]
-     %Scenario = 2; % Case B: 2 balls approaching 3 stationary balls [cite: 128]
+    %%configuration case
+    Scenario = 1; % Case A: 1 ball approaching 4 stationary balls 
+     %Scenario = 2; % Case B: 2 balls approaching 3 stationary balls 
     %Scenario = 3;   % Case C: 3 balls approaching 2 stationary balls
     
-    num_balls = 5;  % Total number of identical balls [cite: 105]
-    R = 0.4;        % Radius of each ball
-    L = 3.0;        % Length of each supporting pendulum string
+    num_balls = 5;  % number of balls
+    R = 0.4;        %radius of balls
+    L = 3.0;        %length of each string
     
-    %% --- Initialize State Arrays ---
-    % Equilibrium X coordinates where balls rest side-by-side with tiny gaps [cite: 108]
+    %%state arrays
+    %equilibrium condition
     x_equilibrium = (0:num_balls-1) * (2 * R + 0.001);
     
-    % Positions (angles in radians) and angular velocities (rad/s)
+    %positions and angular velocities
     theta = zeros(1, num_balls);
     omega = zeros(1, num_balls);
     
-    % Apply initial conditions based on the selected lecture scenario
+    %applying intitial conditions
     if Scenario == 1
-        % 1 ball approaching rightward [cite: 106]
-        theta(1) = -0.4;  % Leftmost ball pulled back
+        theta(1) = -0.4; 
     elseif Scenario == 2
-        % 2 balls approaching rightward [cite: 128]
         theta(1) = -0.4;  
-        theta(2) = -0.4;  % First two balls pulled back together
+        theta(2) = -0.4;
 
     else
-        % Scenario 3: 3 balls approaching rightward
         theta(1) = -0.4;
         theta(2) = -0.4;
-        theta(3) = -0.4;  % First three balls pulled back together
+        theta(3) = -0.4;  
     end
 
-    %% --- Setup Plot Animation Window ---
+    %%plot animations
     fig = figure('Name', 'ME 104: Newton''s Cradle Simulation', 'Color', 'w', 'Position', [100, 100, 800, 400]);
     ax = axes('Parent', fig);
     hold(ax, 'on');
     grid(ax, 'on');
     axis(ax, 'equal');
     
-    % Set stable viewing bounds around the cradle geometry
+    % viewing bounds
     xlim(ax, [min(x_equilibrium) - L, max(x_equilibrium) + L]);
     ylim(ax, [-L - 0.5, 0.5]);
     title(ax, sprintf('Newton''s Cradle: Scenario %d', Scenario), 'FontSize', 12);
     
-    % Initialize graphical handles for strings and ball masses
+    %intiializing graph handles
     h_strings = cell(1, num_balls);
     h_balls   = cell(1, num_balls);
     
-    colors = lines(num_balls); % Give each ball a distinct trace color
+    colors = lines(num_balls); %give trace color
     for idx = 1:num_balls
         h_strings{idx} = plot(ax, [0, 0], [0, 0], 'k-', 'LineWidth', 1.5);
         h_balls{idx}   = plot(ax, 0, 0, 'o', 'MarkerSize', 24, ...
                               'MarkerFaceColor', colors(idx,:), 'MarkerEdgeColor', 'k');
     end
 
-    %% --- Physics Engine Parameters ---
-    dt = 0.005;         % Simulation time step
-    g = 9.81;           % Gravitational acceleration constant
-    total_steps = 1200; % Duration of active running window
+    %%physical parameter
+    dt = 0.005;        %time step
+    g = 9.81;         
+    total_steps = 1200; %duration of running
 
-    %% --- Main Simulation Loop ---
+    %% main loop
     for step = 1:total_steps
         
-        % 1. Kinematics Update (Standard Nonlinear Pendulum integration)
+        % kinematics update
         for i = 1:num_balls
             alpha = -(g / L) * sin(theta(i)); % Angular acceleration
             omega(i) = omega(i) + alpha * dt;   % Update angular velocity
